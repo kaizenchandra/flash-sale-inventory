@@ -1,0 +1,20 @@
+{
+  "two_instances": true,
+  "same_reservation": "3963a111-57b8-4021-9ee2-99ddc06f2d28",
+  "confirmed": 1,
+  "cancelled": 1,
+  "expired": 1,
+  "saleId": "3e81e330-bd59-48e5-98b8-c85eca4f9859",
+  "allocationId": "e07d4d7a-1a90-4302-b65c-a060f8da062e",
+  "stock": {
+    "id": "e07d4d7a-1a90-4302-b65c-a060f8da062e",
+    "sale_id": "3e81e330-bd59-48e5-98b8-c85eca4f9859",
+    "sku_id": "d7e09329-ee6d-41a6-903e-8d72f7dbc09b",
+    "warehouse_id": "f26f1c04-1b7e-4337-b100-5c41b4860a44",
+    "capacity": 10,
+    "reserved": 0,
+    "committed": 1,
+    "version": 6,
+    "available": 9
+  }
+}

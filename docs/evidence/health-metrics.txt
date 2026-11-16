@@ -1,0 +1,3 @@
+Readiness: {"status": "UP"}
+Customer/admin HTML served: PASS
+Prometheus exposed: inventory_held_units, inventory_committed_units, inventory_available_units, reservation_expiration_lag_seconds, outbox_oldest_seconds, outbox_pending, http_server_requests_seconds_bucket

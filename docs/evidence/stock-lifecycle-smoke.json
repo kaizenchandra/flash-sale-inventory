@@ -1,0 +1,38 @@
+{
+  "pool": {
+    "id": "bf827d6d-58ec-442c-96cc-09bc57fdf375",
+    "sale_id": "5603ee6b-d33e-4a65-83ec-1058c4469535",
+    "sku_id": "6aafcb40-5c0f-4afa-9450-13fefc8062b3",
+    "warehouse_id": "2deaeace-9861-4446-9576-21a7092c9096",
+    "capacity": 5,
+    "reserved": 0,
+    "committed": 2,
+    "version": 6,
+    "fulfilled": 2,
+    "released": 3,
+    "closed_at": "2026-11-15T16:42:34.682+00:00",
+    "closed_by": "admin",
+    "available": 0,
+    "encumbered": 0,
+    "committed_outstanding": 0
+  },
+  "warehouse": {
+    "sku_id": "6aafcb40-5c0f-4afa-9450-13fefc8062b3",
+    "warehouse_id": "2deaeace-9861-4446-9576-21a7092c9096",
+    "physical": 8,
+    "sellable": 8,
+    "allocated": 0,
+    "version": 5,
+    "fulfilled": 2,
+    "unallocated": 8
+  },
+  "fulfillment": {
+    "reservationId": "b4dafdbc-dc50-4f49-973a-7c71617e73a1",
+    "shipmentReference": "shipment-190bc920-64a3-4e76-9dfb-5ccca39526ff",
+    "quantity": 2,
+    "actor": "admin",
+    "fulfilledAt": "2026-11-15T16:42:35.404958Z"
+  },
+  "same_key_after_dispatch": "CONFIRMED",
+  "reconciliation": "CONSISTENT"
+}

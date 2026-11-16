@@ -1,0 +1,3 @@
+Readiness: UP
+Closure/dispatch controls served: PASS
+Protected Prometheus: inventory_fulfilled_units, inventory_committed_outstanding_units, inventory_released_units

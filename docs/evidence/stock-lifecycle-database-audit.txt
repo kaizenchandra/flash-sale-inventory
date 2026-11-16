@@ -1,0 +1,16 @@
+ pool_mismatches 
+-----------------
+               0
+(1 row)
+
+ warehouse_mismatches 
+----------------------
+                    0
+(1 row)
+
+        type         | emitted | published | processed 
+---------------------+---------+-----------+-----------
+ InventoryFulfilled  |       1 |         1 |         1
+ InventoryPoolClosed |       2 |         2 |         2
+(2 rows)
+

@@ -1,0 +1,2 @@
+PASS authorization-boundary recovery: ORDER_CONFIRMED reservation=93bbd8dc-99b0-4b33-8c36-3812921c09e1
+PASS authorization-boundary recovery: AUTHORIZATION_VOIDED reservation=842bb1cf-1140-45cd-9b2e-c214d9c6a9f5

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta content="width=device-width" name="viewport">
+<title>Flash sale inventory</title>
+<style>body {
+    font: 16px system-ui;
+    background: #101725;
+    color: #eef2ff;
+    max-width: 1050px;
+    margin: 40px auto;
+    padding: 20px
+}
+
+input, button, select {
+    font: inherit;
+    padding: 10px;
+    margin: 5px;
+    border-radius: 6px
+}
+
+button {
+    cursor: pointer;
+    background: #acf5c0
+}
+
+section {
+    border: 1px solid #53647e;
+    padding: 20px;
+    margin: 20px 0
+}
+
+pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere
+}
+
+small {
+    color: #b5c3d9
+}</style>
+<h1>Flash sale inventory</h1>
+<p>Authoritative reservations · simulated checkout</p>
+<section><h2>Authentication</h2><small>Local demo: customer / customer-local or admin / admin-local. Production: paste
+    an OIDC access token.</small><br><input aria-label="Username" id="user" value="customer"><input
+        aria-label="Password"
+        id="password"
+        type="password"
+        value="customer-local"><input
+        aria-label="Bearer token" id="token" placeholder="Bearer token" type="password">
+    <button onclick="load()">Connect / refresh sales</button>
+</section>
+<section><h2>Customer</h2><select aria-label="Sale" id="sales" onchange="availability()"></select>
+    <button onclick="availability()">Refresh availability</button>
+    <p id="countdown"></p>
+    <pre id="stock"></pre>
+    <input aria-label="Allocation ID" id="allocation" placeholder="Allocation ID">
+    <button onclick="reserve()">Reserve one</button>
+    <button onclick="mine()">My reservations</button>
+    <input aria-label="Reservation ID" id="reservation" placeholder="Reservation ID">
+    <button onclick="act('checkout')">Simulate checkout</button>
+    <button onclick="act('cancel')">Cancel hold</button>
+    <button onclick="readStatus()">Status</button>
+    <p id="hold"></p>
+    <pre id="result"></pre>
+</section>
+<section><h2>Administration</h2>
+    <p>Create dedicated warehouse stock and a draft flash sale:</p><input aria-label="New sale name" id="newName"
+                                                                          placeholder="Product / sale name"
+                                                                          value="Phone launch"><input
+            aria-label="Stock units"
+            id="units"
+            min="1"
+            type="number"
+            value="100"><input
+            aria-label="Hold TTL seconds" id="ttl" max="3600" min="1" type="number" value="30">
+    <button onclick="createStockedSale()">Create stocked sale</button>
+    <br><small>Seed a sale using flash-sale-demo/demo.py, or create products, stock and allocations with the
+        API.</small><br>
+    <button onclick="adminAction('activate')">Activate selected sale</button>
+    <button onclick="adminAction('pause')">Pause</button>
+    <button onclick="adminAction('complete')">Complete</button>
+    <button onclick="metrics()">Reservation counts</button>
+    <button onclick="reconcile()">Run consistency audit</button>
+    <p>Complete/cancel the sale and drain holds before closing its selected allocation.</p>
+    <button onclick="closePool()">Close selected pool</button>
+    <p>Record dispatch only for a confirmed reservation. Keep the same reference when retrying.</p>
+    <input aria-label="Shipment reference" id="shipmentReference" placeholder="Stable shipment reference">
+    <button onclick="dispatchReservation()">Record full dispatch</button>
+    <button onclick="readFulfillment()">Read dispatch</button>
+    <pre id="adminResult"></pre>
+</section>
+<script>
+    let list = [], holdUntil = null, logicalKey = null;
+
+    async function api(path, method = 'GET', body, key) {
+        let headers = {Authorization: token.value ? 'Bearer ' + token.value : 'Basic ' + btoa(user.value + ':' + password.value)};
+        if (body) headers['Content-Type'] = 'application/json';
+        if (key) headers['Idempotency-Key'] = key;
+        let r = await fetch('/api/v1' + path, {method, headers, body: body ? JSON.stringify(body) : undefined});
+        let data = await r.json();
+        if (!r.ok) throw Error(JSON.stringify(data));
+        return data
+    }
+
+    function show(id, data) {
+        document.getElementById(id).textContent = JSON.stringify(data, null, 2)
+    }
+
+    async function safe(fn) {
+        try {
+            await fn()
+        } catch (e) {
+            show('result', {error: e.message})
+        }
+    }
+
+    async function load() {
+        safe(async () => {
+            list = await api('/flash-sales');
+            sales.replaceChildren(...list.map(s => new Option(s.name + ' · ' + s.state, s.id)));
+            await availability()
+        })
+    }
+
+    async function availability() {
+        if (!sales.value) return;
+        let data = await api('/flash-sales/' + sales.value + '/availability');
+        show('stock', data);
+        if (data[0]) allocation.value = data[0].id
+    }
+
+    async function reserve() {
+        safe(async () => {
+            logicalKey = logicalKey || crypto.randomUUID();
+            let r = await api('/reservations/try', 'POST', {
+                saleId: sales.value,
+                allocationId: allocation.value,
+                quantity: 1
+            }, logicalKey);
+            logicalKey = null;
+            reservation.value = r.id;
+            holdUntil = r.status === 'RESERVED' ? r.expiresAt : null;
+            show('result', r);
+            await availability()
+        })
+    }
+
+    async function act(action) {
+        safe(async () => {
+            let r = await api('/reservations/' + reservation.value + '/' + action, 'POST');
+            show('result', r);
+            holdUntil = null;
+            await availability()
+        })
+    }
+
+    async function readStatus() {
+        safe(async () => {
+            let r = await api('/reservations/' + reservation.value);
+            holdUntil = r.status === 'RESERVED' ? r.expiresAt : null;
+            show('result', r)
+        })
+    }
+
+    async function mine() {
+        safe(async () => show('result', await api('/customers/me/reservations')))
+    }
+
+    async function closePool() {
+        safe(async () => {
+            show('adminResult', await api('/admin/allocations/' + allocation.value + '/close', 'POST'));
+            await availability();
+        });
+    }
+
+    async function dispatchReservation() {
+        safe(async () => {
+            const reference = document.getElementById('shipmentReference');
+            reference.value = reference.value || crypto.randomUUID();
+            show('adminResult', await api('/admin/reservations/' + reservation.value + '/fulfill', 'POST', {
+                shipmentReference: reference.value
+            }));
+            await availability();
+        });
+    }
+
+    async function readFulfillment() {
+        safe(async () => show('result', await api('/reservations/' + reservation.value + '/fulfillment')));
+    }
+
+    async function createStockedSale() {
+        safe(async () => {
+            let product = await api('/admin/products', 'POST', {name: newName.value});
+            let sku = await api('/admin/skus', 'POST', {productId: product.id, name: newName.value});
+            let warehouse = await api('/admin/warehouses', 'POST', {name: 'Demo warehouse'});
+            await api('/admin/inventory', 'POST', {
+                skuId: sku.id,
+                warehouseId: warehouse.id,
+                physical: Number(units.value),
+                sellable: Number(units.value)
+            });
+            let sale = await api('/flash-sales', 'POST', {
+                name: newName.value,
+                startsAt: new Date(Date.now() - 1000).toISOString(),
+                endsAt: new Date(Date.now() + 7200000).toISOString(),
+                customerLimit: 3,
+                maxQuantity: 1,
+                ttlSeconds: Number(ttl.value)
+            });
+            let pool = await api('/flash-sales/' + sale.id + '/allocations', 'POST', {
+                skuId: sku.id,
+                warehouseId: warehouse.id,
+                quantity: Number(units.value)
+            });
+            show('adminResult', {saleId: sale.id, allocationId: pool.id, skuId: sku.id, warehouseId: warehouse.id});
+            list = await api('/flash-sales');
+            sales.replaceChildren(...list.map(s => new Option(s.name + ' · ' + s.state, s.id)));
+            sales.value = sale.id;
+            await availability();
+        })
+    }
+
+    async function adminAction(action) {
+        safe(async () => {
+            show('adminResult', await api('/flash-sales/' + sales.value + '/' + action, 'POST'));
+            load()
+        })
+    }
+
+    async function metrics() {
+        safe(async () => show('adminResult', await api('/admin/flash-sales/' + sales.value + '/metrics')))
+    }
+
+    async function reconcile() {
+        safe(async () => {
+            await api('/admin/inventory/reconciliation/run', 'POST');
+            show('adminResult', await api('/admin/inventory/reconciliation'))
+        })
+    }
+
+    setInterval(() => {
+        let s = list.find(s => s.id === sales.value);
+        countdown.textContent = s ? 'Sale opens: ' + Math.max(0, Math.ceil((Date.parse(s.starts_at) - Date.now()) / 1000)) + 's' : '';
+        hold.textContent = holdUntil ? 'Hold remaining: ' + Math.max(0, Math.ceil((Date.parse(holdUntil) - Date.now()) / 1000)) + 's' : ''
+    }, 1000);
+</script>
+</html>

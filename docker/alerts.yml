@@ -1,0 +1,28 @@
+groups:
+  - name: inventory
+    rules:
+      - alert: InventoryInvariantViolation
+        expr: increase(inventory_invariant_violations_total[5m]) > 0
+        for: 0m
+        labels: { severity: critical }
+        annotations: { summary: 'Freeze affected sale; investigate authoritative stock ledger' }
+      - alert: DatabasePoolSaturation
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 2m
+        labels: { severity: warning }
+      - alert: AdmissionUnavailable
+        expr: rate(admission_results_total{result="unavailable"}[5m]) > 1
+        for: 1m
+        labels: { severity: warning }
+      - alert: ExpirationBacklog
+        expr: reservation_expiration_lag_seconds > 60
+        for: 1m
+        labels: { severity: warning }
+      - alert: OutboxBacklog
+        expr: outbox_oldest_seconds > 60
+        for: 1m
+        labels: { severity: warning }
+      - alert: LowSaleStock
+        expr: inventory_available_units < 10
+        for: 1m
+        labels: { severity: info }

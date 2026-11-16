@@ -1,0 +1,10 @@
+ counter_mismatches 
+--------------------
+                  0
+(1 row)
+
+ events | pending | processed 
+--------+---------+-----------
+     60 |       0 |        60
+(1 row)
+

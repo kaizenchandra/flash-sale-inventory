@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: flash-sale-inventory
+  threads.virtual.enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/flashsale}
+    username: ${DB_USER:flashsale}
+    password: ${DB_PASSWORD:local-only}
+    hikari:
+      data-source-properties:
+        connectTimeout: 2
+        socketTimeout: 5
+        tcpKeepAlive: true
+      maximum-pool-size: 16
+      connection-timeout: 1000
+      connection-init-sql: "SET statement_timeout = '3s'"
+  flyway:
+    url: ${spring.datasource.url}
+    user: ${FLYWAY_USER:${spring.datasource.username}}
+    password: ${FLYWAY_PASSWORD:${spring.datasource.password}}
+  data.redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 200ms
+    connect-timeout: 200ms
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 5000
+        request.timeout.ms: 2000
+        max.block.ms: 1000
+    consumer:
+      group-id: flashsale-projection-v1
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener.ack-mode: record
+  lifecycle.timeout-per-shutdown-phase: 20s
+server:
+  shutdown: graceful
+  tomcat.max-connections: 2048
+  tomcat.accept-count: 128
+management:
+  endpoints.web.exposure.include: health,prometheus
+  endpoint.health.probes.enabled: true
+app:
+  admission-limit: 100
+  customer-limit-per-second: 3
+  messaging: ${MESSAGING_ENABLED:true}
+  issuer: ${OIDC_ISSUER:https://identity.example.invalid/}
+  audience: ${OIDC_AUDIENCE:flashsale}
+
+logging:
+  structured.format.console: ecs
+management.metrics.distribution.percentiles-histogram.http.server.requests: true
